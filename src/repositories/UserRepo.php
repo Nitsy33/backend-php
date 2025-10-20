@@ -22,7 +22,7 @@ class UserRepo {
         z.company_id,
         z.coordinador_id
       FROM area_member am
-      JOIN zona z ON z.id = am.area_id
+      JOIN area z ON z.id = am.area_id
       WHERE am.user_id = :u
     ");
     $st->execute([':u' => $userId]);
