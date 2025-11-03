@@ -28,6 +28,10 @@ function route_request() {
   if ($m === 'POST' && count($seg)===3 && $seg[0]==='tasks' && ctype_digit($seg[1]) && $seg[2]==='comments') {
     return CommentsController::add((int)$seg[1]);
   }
+  
+  if ($m === 'GET' && count($seg)===3 && $seg[0]==='tasks' && ctype_digit($seg[1]) && $seg[2]==='comments') {
+    return CommentsController::list((int)$seg[1]);
+  }
 
   // Areas
   if ($m === 'GET' && $seg === ['areas','mine']) return AreasController::mine();
