@@ -6,30 +6,30 @@ class SummaryController {
     $auth = require_auth();
     $pdo = db();
 
-    // 1️⃣ Verificar área
+    // Verificar que el área existe
     $st = $pdo->prepare("SELECT id, name, coordinator_id FROM area WHERE id = :id");
     $st->execute([':id' => $areaId]);
     $area = $st->fetch(PDO::FETCH_ASSOC);
     if (!$area) json_out(['error' => 'Área no existe'], 404);
 
-    // 2️⃣ Solo el coordinador puede acceder
+    // Solo coordinador
     if ((int)$area['coordinator_id'] !== (int)$auth['sub']) {
       json_out(['error' => 'Solo el coordinador puede ver estas estadísticas'], 403);
     }
 
-    // 3️⃣ Base SQL reutilizable
+    // 🔧 Reutilizamos la condición con el nombre correcto de la columna
     $scope = "
-      (area_id = :id OR assigned_to IN (
+      (area_id = :id OR assigned_to_user_id IN (
         SELECT id FROM user_account WHERE area_id = :id
       ))
     ";
 
-    // 4️⃣ Total
+    // Total
     $st = $pdo->prepare("SELECT COUNT(*) FROM task WHERE $scope");
     $st->execute([':id' => $areaId]);
     $total = (int)$st->fetchColumn();
 
-    // 5️⃣ Por estado
+    // Por estado
     $st = $pdo->prepare("
       SELECT status, COUNT(*) AS c
       FROM task
@@ -42,7 +42,7 @@ class SummaryController {
       $porEstado[$row['status']] = (int)$row['c'];
     }
 
-    // 6️⃣ Por urgencia
+    // Por urgencia
     $st = $pdo->prepare("
       SELECT urgency, COUNT(*) AS c
       FROM task
@@ -55,7 +55,7 @@ class SummaryController {
       $porUrgencia[$row['urgency']] = (int)$row['c'];
     }
 
-    // 7️⃣ Por tipo
+    // Por tipo
     $st = $pdo->prepare("
       SELECT task_type, COUNT(*) AS c
       FROM task
@@ -68,7 +68,7 @@ class SummaryController {
       $porTipo[$row['task_type']] = (int)$row['c'];
     }
 
-    // 8️⃣ Últimos comentarios (de todos los usuarios del área)
+    // Últimos comentarios
     $st = $pdo->prepare("
       SELECT 
         tc.id,
@@ -87,7 +87,7 @@ class SummaryController {
     $st->execute([':id' => $areaId]);
     $lastComments = $st->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9️⃣ Salida final
+    // Resultado final
     $out = [
       'area'         => $area['name'],
       'total'        => $total,
