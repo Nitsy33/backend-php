@@ -20,6 +20,7 @@ require_once __DIR__ . '/../src/controllers/AuthController.php';
 require_once __DIR__ . '/../src/controllers/TasksController.php';
 require_once __DIR__ . '/../src/controllers/CommentsController.php';
 require_once __DIR__ . '/../src/controllers/AreasController.php';
+require_once __DIR__ . '/../src/controllers/SummaryController.php'; 
 
 require_once __DIR__ . '/../src/routes/routes.php';
 
