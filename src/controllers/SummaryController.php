@@ -26,18 +26,16 @@ class SummaryController {
       $hasAreaMember = false;
     }
 
-    // 4️⃣ Armar condición dinámica según estructura
+    // 4️⃣ Condición dinámica
     if ($hasAreaMember) {
-      // Si existe tabla area_member
       $scope = "
-        (task.area_id = :id OR task.assigned_to_user_id IN (
+        (area_id = :id OR assigned_to_user_id IN (
           SELECT user_id FROM area_member WHERE area_id = :id
         ))
       ";
     } else {
-      // Si user_account tiene campo area_id
       $scope = "
-        (task.area_id = :id OR task.assigned_to_user_id IN (
+        (area_id = :id OR assigned_to_user_id IN (
           SELECT id FROM user_account WHERE area_id = :id
         ))
       ";
@@ -99,7 +97,9 @@ class SummaryController {
       FROM task_comment tc
       JOIN task t ON t.id = tc.task_id
       JOIN user_account ua ON ua.id = tc.author_id
-      WHERE $scope
+      WHERE (t.area_id = :id OR t.assigned_to_user_id IN (
+        SELECT " . ($hasAreaMember ? "user_id FROM area_member" : "id FROM user_account") . " WHERE area_id = :id
+      ))
       ORDER BY tc.created_at DESC
       LIMIT 5
     ");
