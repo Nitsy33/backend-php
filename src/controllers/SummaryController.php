@@ -6,7 +6,7 @@ class SummaryController {
     $auth = require_auth();
     $pdo = db();
 
-    // 1) Verificar área
+    // Verificar que el área existe
     $st = $pdo->prepare("SELECT id, name, coordinator_id FROM area WHERE id = :id");
     $st->execute([':id' => $areaId]);
     $area = $st->fetch(PDO::FETCH_ASSOC);
@@ -15,17 +15,17 @@ class SummaryController {
       json_out(['error' => 'Área no existe'], 404);
     }
 
-    // 2) Solo coordinador del área puede ver stats (ajusta esto si quieres otra lógica)
+    // Permitir solo al coordinador
     if ((int)$area['coordinator_id'] !== (int)$auth['sub']) {
       json_out(['error' => 'Solo el coordinador puede ver estas estadísticas'], 403);
     }
 
-    // 3) Total de tareas del área
+    // ✅ Contar todas las tareas del área, no solo las del usuario
     $st = $pdo->prepare("SELECT COUNT(*) FROM task WHERE area_id = :id");
     $st->execute([':id' => $areaId]);
     $total = (int)$st->fetchColumn();
 
-    // 4) Por estado
+    // ✅ Agrupar por estado (sin filtrar por usuario)
     $st = $pdo->prepare("
       SELECT status, COUNT(*) AS c
       FROM task
@@ -38,7 +38,7 @@ class SummaryController {
       $porEstado[$row['status']] = (int)$row['c'];
     }
 
-    // 5) Por urgencia
+    // ✅ Agrupar por urgencia
     $st = $pdo->prepare("
       SELECT urgency, COUNT(*) AS c
       FROM task
@@ -51,7 +51,7 @@ class SummaryController {
       $porUrgencia[$row['urgency']] = (int)$row['c'];
     }
 
-    // 6) Por tipo (SIMPLE / SEGUIMIENTO)
+    // ✅ Agrupar por tipo
     $st = $pdo->prepare("
       SELECT task_type, COUNT(*) AS c
       FROM task
@@ -64,7 +64,7 @@ class SummaryController {
       $porTipo[$row['task_type']] = (int)$row['c'];
     }
 
-    // 7) Últimos comentarios del área (ej: últimos 5)
+    // ✅ Últimos comentarios de cualquier miembro del área
     $st = $pdo->prepare("
       SELECT 
         tc.id,
@@ -83,7 +83,7 @@ class SummaryController {
     $st->execute([':id' => $areaId]);
     $lastComments = $st->fetchAll(PDO::FETCH_ASSOC);
 
-    // 8) Respuesta
+    // ✅ Salida final
     $out = [
       'area'         => $area['name'],
       'total'        => $total,
