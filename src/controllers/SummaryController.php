@@ -6,30 +6,31 @@ class SummaryController {
     $auth = require_auth();
     $pdo = db();
 
-    // 1️⃣ Verificar que el área exista
+    // 1️⃣ Verificar que el área existe
     $st = $pdo->prepare("SELECT id, name, coordinator_id FROM area WHERE id = :id");
     $st->execute([':id' => $areaId]);
     $area = $st->fetch(PDO::FETCH_ASSOC);
+
     if (!$area) json_out(['error' => 'Área no existe'], 404);
 
-    // 2️⃣ Solo el coordinador puede acceder
+    // 2️⃣ Permitir solo al coordinador
     if ((int)$area['coordinator_id'] !== (int)$auth['sub']) {
       json_out(['error' => 'Solo el coordinador puede ver estas estadísticas'], 403);
     }
 
-    // 3️⃣ Condición: tareas del área o asignadas a usuarios de la misma área
+    // 3️⃣ Condición: incluir tareas del área y tareas asignadas a usuarios que pertenezcan a esta área
     $scope = "
       (t.area_id = :id OR t.assigned_to_user_id IN (
-        SELECT ua.id FROM user_account ua WHERE ua.area_id = :id
+        SELECT am.user_id FROM area_member am WHERE am.area_id = :id
       ))
     ";
 
-    // 4️⃣ Total
+    // 4️⃣ Total de tareas
     $st = $pdo->prepare("SELECT COUNT(*) FROM task t WHERE $scope");
     $st->execute([':id' => $areaId]);
     $total = (int)$st->fetchColumn();
 
-    // 5️⃣ Por estado
+    // 5️⃣ Agrupar por estado
     $st = $pdo->prepare("
       SELECT t.status, COUNT(*) AS c
       FROM task t
@@ -42,7 +43,7 @@ class SummaryController {
       $porEstado[$r['status']] = (int)$r['c'];
     }
 
-    // 6️⃣ Por urgencia
+    // 6️⃣ Agrupar por urgencia
     $st = $pdo->prepare("
       SELECT t.urgency, COUNT(*) AS c
       FROM task t
@@ -55,7 +56,7 @@ class SummaryController {
       $porUrgencia[$r['urgency']] = (int)$r['c'];
     }
 
-    // 7️⃣ Por tipo
+    // 7️⃣ Agrupar por tipo
     $st = $pdo->prepare("
       SELECT t.task_type, COUNT(*) AS c
       FROM task t
@@ -68,7 +69,7 @@ class SummaryController {
       $porTipo[$r['task_type']] = (int)$r['c'];
     }
 
-    // 8️⃣ Últimos comentarios
+    // 8️⃣ Últimos comentarios (de cualquier miembro del área)
     $st = $pdo->prepare("
       SELECT 
         tc.id,
@@ -80,18 +81,20 @@ class SummaryController {
       FROM task_comment tc
       JOIN task t ON t.id = tc.task_id
       JOIN user_account ua ON ua.id = tc.author_id
-      WHERE $scope
+      WHERE (t.area_id = :id OR t.assigned_to_user_id IN (
+        SELECT am.user_id FROM area_member am WHERE am.area_id = :id
+      ))
       ORDER BY tc.created_at DESC
       LIMIT 5
     ");
     $st->execute([':id' => $areaId]);
     $lastComments = $st->fetchAll(PDO::FETCH_ASSOC);
 
-    // 9️⃣ Porcentaje de completadas
+    // 9️⃣ Porcentaje completado
     $completed = $porEstado['COMPLETADA'] ?? 0;
     $progressPercent = $total > 0 ? round(($completed / $total) * 100, 2) : 0;
 
-    // 🔟 Resultado final
+    // 🔟 Respuesta final
     json_out([
       'area'             => $area['name'],
       'total'            => $total,
