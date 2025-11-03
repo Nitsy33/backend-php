@@ -20,4 +20,16 @@ class AreasController {
     $members = AreaRepo::membersOf($pdo, $areaId);
     json_out($members);
   }
+  // ✅ NUEVO: un usuario específico de un área
+  public static function member(int $areaId, int $userId) {
+    global $pdo;
+    $member = AreaRepo::memberById($pdo, $areaId, $userId);
+
+    if ($member === null) {
+      json_out(['error' => 'Usuario no encontrado en el área'], 404);
+      return;
+    }
+
+    json_out($member, 200);
+  }
 }
