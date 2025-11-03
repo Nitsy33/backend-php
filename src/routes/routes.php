@@ -63,5 +63,7 @@ function route_request() {
     return SummaryController::area((int)$seg[2]);
   }
 
-  return null;
+  // 👇 Fallback explícito
+  error_log('ROUTER 404 method=' . $m . ' seg=' . json_encode($seg));
+  return json_out(['error' => 'Not found', 'segments' => $seg, 'method' => $m], 404);
 }
