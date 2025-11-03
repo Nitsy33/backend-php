@@ -54,7 +54,14 @@ function route_request() {
     return AreasController::members((int)$seg[1]);
   }
 
-  return null;
+    // Summary / Estadísticas de área
+  if ($m === 'GET'
+      && count($seg) === 3
+      && $seg[0] === 'summary'
+      && $seg[1] === 'area'
+      && ctype_digit($seg[2])) {
+    return SummaryController::area((int)$seg[2]);
+  }
 
   return null;
 }
