@@ -35,5 +35,22 @@ function route_request() {
     return AreasController::members((int)$seg[1]);
   }
 
+    // ✅ NUEVO: /areas/{areaId}/members/{userId}
+  if ($m === 'GET'
+      && count($seg)===4
+      && $seg[0]==='areas'
+      && ctype_digit($seg[1])
+      && $seg[2]==='members'
+      && ctype_digit($seg[3])) {
+    return AreasController::member((int)$seg[1], (int)$seg[3]);
+  }
+
+  // Ya existente: /areas/{areaId}/members  (todos los miembros)
+  if ($m === 'GET' && count($seg)===3 && $seg[0]==='areas' && ctype_digit($seg[1]) && $seg[2]==='members') {
+    return AreasController::members((int)$seg[1]);
+  }
+
+  return null;
+
   return null;
 }
