@@ -19,4 +19,20 @@ class CommentsController {
     $c = CommentRepo::add($pdo, $taskId, (int)$auth['sub'], $body);
     json_out($c, 201);
   }
+
+  // 👇 NUEVO: listar comentarios de una tarea
+  public static function list(int $taskId): void {
+    $auth = require_auth();
+    $pdo = db();
+    $task = TaskRepo::findOne($pdo, $taskId);
+    if (!$task) json_out(['error'=>'No existe la tarea'], 404);
+
+    // mismo permiso que en add
+    $allowed = ((int)$task['assigned_to_user_id'] === (int)$auth['sub'])
+      || in_array((int)$task['area_id'], array_map('intval', $auth['areas'] ?? []), true);
+    if (!$allowed) json_out(['error'=>'Forbidden'], 403);
+
+    $comments = CommentRepo::listByTask($pdo, $taskId);
+    json_out($comments);
+  }
 }
